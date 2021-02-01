@@ -6,7 +6,7 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; Copyright (c) 2020 STMicroelectronics.
+  * <h2><center>&copy; Copyright (c) 2021 STMicroelectronics.
   * All rights reserved.</center></h2>
   *
   * This software component is licensed by ST under BSD 3-Clause license,
@@ -20,12 +20,14 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "adc.h"
 #include "tim.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "LiquidCrystal.h"
+#include "moving_average.h"
 #include "string"
 /* USER CODE END Includes */
 
@@ -47,10 +49,11 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-uint16_t echo_start = 0;
-uint16_t RTT = 0;
-char LCDstring[16] = "";
-float distance = 0;
+uint32_t ADC_value = 0;
+char LCDmsg[8] = "";
+float voltage = 0;
+float load = 0;
+FilterTypeDef mvFilter;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -61,7 +64,7 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc);
 /* USER CODE END 0 */
 
 /**
@@ -93,13 +96,13 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_ADC1_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
-	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
-	HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_1);
-	HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_2);
-	LiquidCrystal(GPIOD, GPIO_PIN_9, GPIO_PIN_10, GPIO_PIN_11,
-			     GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_2, GPIO_PIN_3);
+	HAL_ADC_Start_IT(&hadc1);
+	HAL_TIM_Base_Start(&htim3);
+	LiquidCrystal(GPIOD, GPIO_PIN_9, GPIO_PIN_10, GPIO_PIN_11, GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_2, GPIO_PIN_3);
+	Moving_Average_Init(&mvFilter);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -110,12 +113,11 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 		clear();
-		sprintf(LCDstring, "RTT = %d", 342.0*RTT); // micro-meter
-		print(LCDstring);
-		setCursor(0,1);
-		distance = 0.0348*RTT/2.0 - 0.4472;
-		sprintf(LCDstring, "dis: %f", distance);
-		print(LCDstring);
+		sprintf(LCDmsg, "Volt = %f", voltage);
+		print(LCDmsg);
+		sprintf(LCDmsg, "Kilogram = %d", load);
+		print(LCDmsg);
+		HAL_Delay(1000);
   }
   /* USER CODE END 3 */
 }
@@ -135,12 +137,11 @@ void SystemClock_Config(void)
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
   /** Initializes the CPU, AHB and APB busses clocks 
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-  RCC_OscInitStruct.PLL.PLLM = 8;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLM = 4;
   RCC_OscInitStruct.PLL.PLLN = 168;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 4;
@@ -164,17 +165,13 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-
-void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
-	if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)
-	{
-		echo_start = HAL_TIM_ReadCapturedValue(&htim3, TIM_CHANNEL_1);
-	}
-	if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2)
-	{
-		RTT = TIM3->CCR2 - echo_start;
-	}
+	ADC_value =  HAL_ADC_GetValue(&hadc1);
+	ADC_value = Moving_Average_Compute(ADC_value, &mvFilter);
+	voltage = ADC_value / 4096.0 * 3.3;
+	load = p1*voltage + p2;
+	
 }
 /* USER CODE END 4 */
 

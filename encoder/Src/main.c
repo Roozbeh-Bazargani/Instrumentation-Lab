@@ -6,7 +6,7 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; Copyright (c) 2020 STMicroelectronics.
+  * <h2><center>&copy; Copyright (c) 2021 STMicroelectronics.
   * All rights reserved.</center></h2>
   *
   * This software component is licensed by ST under BSD 3-Clause license,
@@ -20,13 +20,11 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "tim.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "LiquidCrystal.h"
-#include "string"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,10 +45,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-uint16_t echo_start = 0;
-uint16_t RTT = 0;
-char LCDstring[16] = "";
-float distance = 0;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -93,13 +88,9 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
-	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
-	HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_1);
-	HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_2);
-	LiquidCrystal(GPIOD, GPIO_PIN_9, GPIO_PIN_10, GPIO_PIN_11,
-			     GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_2, GPIO_PIN_3);
+	Hal_TIM_BASE_Start_IT(&htim3);
+	LiquidCrystal(GPIO
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -109,13 +100,6 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-		clear();
-		sprintf(LCDstring, "RTT = %d", 342.0*RTT); // micro-meter
-		print(LCDstring);
-		setCursor(0,1);
-		distance = 0.0348*RTT/2.0 - 0.4472;
-		sprintf(LCDstring, "dis: %f", distance);
-		print(LCDstring);
   }
   /* USER CODE END 3 */
 }
@@ -165,17 +149,6 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 
-void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
-{
-	if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)
-	{
-		echo_start = HAL_TIM_ReadCapturedValue(&htim3, TIM_CHANNEL_1);
-	}
-	if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2)
-	{
-		RTT = TIM3->CCR2 - echo_start;
-	}
-}
 /* USER CODE END 4 */
 
 /**

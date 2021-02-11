@@ -28,7 +28,7 @@
 /* USER CODE BEGIN Includes */
 #include "LiquidCrystal.h"
 #include "moving_average.h"
-#include "string"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -53,6 +53,8 @@ uint32_t ADC_value = 0;
 char LCDmsg[8] = "";
 float voltage = 0;
 float load = 0;
+float p1 = 7.274;
+float p2 = -0.06289;
 FilterTypeDef mvFilter;
 /* USER CODE END PV */
 
@@ -115,7 +117,7 @@ int main(void)
 		clear();
 		sprintf(LCDmsg, "Volt = %f", voltage);
 		print(LCDmsg);
-		sprintf(LCDmsg, "Kilogram = %d", load);
+		sprintf(LCDmsg, "Kilogram = %f", load);
 		print(LCDmsg);
 		HAL_Delay(1000);
   }

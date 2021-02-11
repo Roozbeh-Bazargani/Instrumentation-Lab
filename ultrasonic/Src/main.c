@@ -26,7 +26,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "LiquidCrystal.h"
-#include "string"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -110,12 +110,16 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 		clear();
-		sprintf(LCDstring, "RTT = %d", 342.0*RTT); // micro-meter
+		
+		setCursor(0,0);
+		sprintf(LCDstring, "RTT = %d", 342*RTT); // micro-meter
 		print(LCDstring);
+		
 		setCursor(0,1);
 		distance = 0.0348*RTT/2.0 - 0.4472;
 		sprintf(LCDstring, "dis: %f", distance);
 		print(LCDstring);
+		HAL_Delay(200);
   }
   /* USER CODE END 3 */
 }
